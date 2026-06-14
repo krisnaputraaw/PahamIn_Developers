@@ -1,0 +1,217 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+}
+
+.login-overlay{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  background:rgba(235,240,246,0.82);
+
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+
+.login-modal{
+  width:500px;
+
+  background:#ffffff;
+
+  border-radius:28px;
+
+  padding:36px 40px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.12);
+
+  display:flex;
+  flex-direction:column;
+}
+
+.login-title{
+  text-align:center;
+
+  font-size:38px;
+  font-weight:700;
+
+  color:#111827;
+
+  margin-bottom:4px;
+}
+
+.login-subtitle{
+  text-align:center;
+
+  color:#94a3b8;
+
+  font-size:15px;
+
+  margin-bottom:22px;
+}
+
+.input-box{
+  height:58px;
+
+  display:flex;
+  align-items:center;
+
+  padding:0 16px;
+
+  background:#f5f7fa;
+
+  border:1px solid #cfd5df;
+
+  border-radius:8px;
+
+  margin-bottom:12px;
+
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.04);
+}
+
+.input-icon{
+  color:#6b7280;
+
+  font-size:18px;
+
+  margin-right:12px;
+
+  flex-shrink:0;
+}
+
+.input-box input{
+  flex:1;
+
+  border:none;
+  outline:none;
+
+  background:transparent;
+
+  font-size:14px;
+
+  color:#374151;
+}
+
+.input-box input::placeholder{
+  color:#6b7280;
+}
+
+.login-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+  margin-top:4px;
+  margin-bottom:18px;
+}
+
+.remember-me{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  font-size:13px;
+
+  color:#374151;
+}
+
+.remember-me input{
+  width:15px;
+  height:15px;
+
+  margin:0;
+}
+
+.login-row a{
+  text-decoration:none;
+
+  color:#2563eb;
+
+  font-size:13px;
+  font-weight:500;
+}
+
+.login-button{
+  width:100%;
+  height:52px;
+
+  border:none;
+  border-radius:8px;
+
+  background:#2962ff;
+
+  color:white;
+
+  font-size:18px;
+  font-weight:600;
+
+  cursor:pointer;
+
+  transition:0.2s;
+}
+
+.login-button:hover{
+  background:#1f54e8;
+}
+
+.continue-text{
+  text-align:center;
+
+  margin:24px 0 18px;
+
+  color:#4b5563;
+
+  font-size:14px;
+}
+
+.social-row{
+  display:flex;
+  justify-content:center;
+
+  gap:14px;
+}
+
+.social-btn{
+  width:48px;
+  height:48px;
+
+  border:1.5px solid #7da2ff;
+
+  border-radius:6px;
+
+  background:white;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  cursor:pointer;
+
+  transition:0.2s;
+}
+
+.social-btn:hover{
+  background:#f5f8ff;
+}
+
+.social-btn img{
+  width:24px;
+  height:24px;
+}
+
+.apple-btn{
+  font-size:28px;
+  font-weight:500;
+}

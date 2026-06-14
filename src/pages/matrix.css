@@ -1,0 +1,391 @@
+/* =========================
+   MATRIX CONTENT
+========================= */
+
+.matrix-wrapper {
+  position: relative;
+  z-index: 1;
+
+  max-width: 1050px;
+  width: 100%;
+
+  margin: 0 auto;
+
+  padding: 1rem 1.5rem;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+  overflow-y:auto;
+  padding-bottom:40px;
+}
+
+.matrix-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.matrix-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* =========================
+   GRID
+========================= */
+
+.matrix-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 14px;
+
+  align-items: start;
+}
+
+/* =========================
+   CARD
+========================= */
+
+.matrix-card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+
+.matrix-info{
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+}
+
+.matrix-icon{
+  width:46px;
+  height:46px;
+
+  border-radius:12px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:22px;
+
+  flex-shrink:0;
+}
+
+.do-icon{
+  background:#FDE2E2;
+  color:#E53935;
+}
+
+.decide-icon{
+  background:#DFE8FF;
+  color:#2563EB;
+}
+
+.delegate-icon{
+  background:#FFE7BF;
+  color:#B7791F;
+}
+
+.delete-icon{
+  background:#ECECEC;
+  color:#6B7280;
+}
+
+.matrix-card {
+  background: #fff;
+
+  border-radius: 20px;
+
+  border: none;
+
+  padding: 18px;
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 190px;
+  height: 100%;
+
+  box-shadow:0 2px 10px rgba(0,0,0,0.04);
+}
+
+.matrix-card h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+
+  margin-bottom: 0.5rem;
+}
+
+.matrix-card p {
+  color: var(--text-muted);
+
+  font-size: 0.9rem;
+
+  margin-bottom: 1rem;
+}
+
+/* =========================
+   COLORS
+========================= */
+
+.matrix-card.do {
+  border-top: 6px solid #EF4444;
+}
+
+.matrix-card.decide {
+  border-top: 6px solid #2563EB;
+}
+
+.matrix-card.delegate {
+  border-top: 6px solid #F59E0B;
+}
+
+.matrix-card.delete {
+  border-top: 6px solid #6B7280;
+}
+
+/* =========================
+   TASK LIST
+========================= */
+
+.matrix-task {
+  display: flex;
+  align-items: center;
+
+  gap: 0.75rem;
+
+  padding: 6px 10px;
+
+  border-radius: 6px;
+
+  background: #F9FAFB;
+
+  border: 1px solid var(--border);
+
+  margin-bottom: 0.75rem;
+}
+
+.matrix-task input {
+  width: 16px;
+  height: fit-content;
+}
+
+.matrix-task span {
+  color: var(--text-dark);
+  font-size: 12px;
+}
+
+.task-badge{
+  font-size:13px;
+  font-weight:600;
+  padding:6px 12px;
+  border-radius:6px;
+}
+
+.do-badge{
+  background:#F9B4B4;
+  color:#B42318;
+}
+
+.decide-badge{
+  background:#BFD0FF;
+  color:#175CD3;
+}
+
+.delegate-badge{
+  background:#F8C15C;
+  color:#8A4B08;
+}
+
+.delete-badge{
+  background:#D9DFEA;
+  color:#667085;
+}
+
+.task-item{
+  display:flex;
+  align-items:center;
+
+  gap:14px;
+
+  height: 28px;
+
+  background:#F3F4F6;
+
+  border-radius:12px;
+
+  padding:0 14px;
+
+  margin-top:10px;
+}
+
+.task-item span{
+  font-size:14px;
+  font-weight:500;
+  color:#1F2937;
+}
+
+/* =========================
+   INPUT
+========================= */
+
+.matrix-input-box {
+  background: white;
+
+  border-radius: 20px;
+
+  border: 1px solid var(--border);
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+
+  padding: 0.75rem;
+
+  display: flex;
+  gap: 1rem;
+}
+
+.matrix-input {
+  width: 470px;
+  height: 45px;
+
+  background: #fff;
+
+  border-radius: 12px;
+
+  padding: 0 18px;
+
+  display: flex;
+  align-items: center;
+
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18);
+}
+
+.matrix-btn {
+  border: none;
+
+  background: var(--primary);
+
+  color: white;
+
+  padding: 0.8rem 1.2rem;
+
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  font-weight: 600;
+
+  transition: 0.2s;
+}
+
+.matrix-btn:hover {
+  background: var(--primary-hover);
+}
+
+.matrix-input-section{
+  margin-bottom:20px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+
+  .matrix-grid{
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:20px;
+}
+
+}
+
+.matrix-input-section{
+  display:flex;
+  justify-content:center;
+
+  margin-top:24px;
+}
+
+.matrix-input input{
+  flex:1;
+
+  border:none;
+  outline:none;
+
+  font-size:16px;
+
+  color:#6B7280;
+
+  background:transparent;
+}
+
+.matrix-add-btn{
+  border:none;
+
+  background:#2563EB;
+  color:white;
+
+  height:22px;
+  width:57px;
+
+  border-radius:999px;
+
+  font-size:10px;
+  font-weight:600;
+
+  cursor:pointer;
+}
+
+.matrix-mic-btn{
+  background:none;
+  border:none;
+
+  margin-left:12px;
+
+  font-size:22px;
+
+  color:#6B7280;
+
+  cursor:pointer;
+}
+
+@media (max-width: 1024px){
+
+  .matrix-wrapper{
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .matrix-grid{
+    gap: 12px;
+  }
+
+  .matrix-card{
+    padding: 14px;
+  }
+
+  .matrix-input{
+    width: 480px;
+    height: 56px;
+  }
+
+}
+
+@media (max-width: 768px){
+
+  .matrix-wrapper{
+    max-width: 100%;
+  }
+
+}
