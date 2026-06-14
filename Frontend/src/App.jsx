@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
+import { MatrixArea } from './pages/matrix';
+import './pages/matrix.css';
 
 // Reusable Icon Component
 const Icon = ({ name, size = 20, className = "" }) => {
@@ -18,7 +20,8 @@ const Icon = ({ name, size = 20, className = "" }) => {
     image: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>,
     download: <><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /><path d="M12 4v12" /><path d="M8 12l4 4 4-4" /></>,
     sparkles: <><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="currentColor" stroke="none" /></>,
-    plus_circle: <><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /><path d="M12 8v8M8 12h8" stroke="white" strokeWidth="2" strokeLinecap="round" /></>
+    plus_circle: <><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /><path d="M12 8v8M8 12h8" stroke="white" strokeWidth="2" strokeLinecap="round" /></>,
+    trash: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>
   };
 
   return (
@@ -39,7 +42,7 @@ const Icon = ({ name, size = 20, className = "" }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSelectChat, onNewChat }) => {
+const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSelectChat, onNewChat, currentView, onViewChange, onDeleteChat }) => {
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -64,14 +67,26 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
         <div className="nav-section">
           <a
             href="#"
-            className={`nav-item ${!activeChatId ? 'active' : ''}`}
+            className={`nav-item ${currentView === 'ruang-paham' ? 'active' : ''}`}
             title={isCollapsed ? 'Ruang Paham' : ''}
-            onClick={(e) => { e.preventDefault(); onNewChat(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              onViewChange('ruang-paham');
+              onNewChat();
+            }}
           >
             <Icon name="grid" />
             <span>Ruang Paham</span>
           </a>
-          <a href="#" className="nav-item" title={isCollapsed ? 'Matriks Tugas' : ''}>
+          <a
+            href="#"
+            className={`nav-item ${currentView === 'matrix' ? 'active' : ''}`}
+            title={isCollapsed ? 'Matriks Tugas' : ''}
+            onClick={(e) => {
+              e.preventDefault();
+              onViewChange('matrix');
+            }}
+          >
             <Icon name="matrix" />
             <span>Matriks Tugas</span>
           </a>
@@ -84,11 +99,28 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
               <a
                 key={session.id}
                 href="#"
-                className={`nav-item history-item ${session.id === activeChatId ? 'active' : ''}`}
+                className={`nav-item history-item ${session.id == activeChatId && currentView === 'ruang-paham' ? 'active' : ''}`}
                 title={isCollapsed ? session.title : ''}
-                onClick={(e) => { e.preventDefault(); onSelectChat(session.id); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onViewChange('ruang-paham');
+                  onSelectChat(session.id);
+                }}
               >
                 <span className="history-text">{session.title}</span>
+                {!isCollapsed && (
+                  <button
+                    className="delete-history-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onDeleteChat(session.id);
+                    }}
+                    title="Hapus percakapan"
+                  >
+                    <Icon name="trash" size={14} />
+                  </button>
+                )}
               </a>
             ))}
           </div>
@@ -243,12 +275,15 @@ const MainArea = ({ messages, onSendMessage }) => {
                 <div className="message-content">
                   {msg.files && msg.files.length > 0 && (
                     <div className="message-files">
-                      {msg.files.map((f, i) => (
-                        <div key={i} className="msg-file-pill">
-                          <Icon name="file" size={12} />
-                          <span>{f.name.length > 20 ? f.name.substring(0, 20) + '...' : f.name}</span>
-                        </div>
-                      ))}
+                      {msg.files.map((f, i) => {
+                        const fileName = f && f.name ? f.name : 'Dokumen';
+                        return (
+                          <div key={i} className="msg-file-pill">
+                            <Icon name="file" size={12} />
+                            <span>{fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {msg.text && (
@@ -370,6 +405,7 @@ const MainArea = ({ messages, onSendMessage }) => {
 // Main App Layout
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [currentView, setCurrentView] = useState('ruang-paham'); // 'ruang-paham' or 'matrix'
   const [chatSessions, setChatSessions] = useState(() => {
     try {
       const saved = localStorage.getItem('pahamin_chats');
@@ -391,6 +427,13 @@ function App() {
     setActiveChatId(null);
   };
 
+  const handleDeleteChat = (chatId) => {
+    setChatSessions(prev => prev.filter(s => s.id != chatId));
+    if (activeChatId == chatId) {
+      setActiveChatId(null);
+    }
+  };
+
   const handleSendMessage = (text, files) => {
     let chatId = activeChatId;
 
@@ -408,17 +451,22 @@ function App() {
       setActiveChatId(chatId);
     }
 
+    const serializedFiles = files ? files.map(f => ({
+      name: f.name || 'Dokumen',
+      size: f.size || 0
+    })) : [];
+
     const userMsg = {
       id: Date.now(),
       sender: 'user',
       text,
-      files,
+      files: serializedFiles,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     // Append user message to the correct session
     setChatSessions(prev => prev.map(s =>
-      s.id === chatId ? { ...s, messages: [...s.messages, userMsg] } : s
+      s.id == chatId ? { ...s, messages: [...s.messages, userMsg] } : s
     ));
 
     // Simulate AI response after 1s
@@ -431,12 +479,12 @@ function App() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatSessions(prev => prev.map(s =>
-        s.id === targetChatId ? { ...s, messages: [...s.messages, aiMsg] } : s
+        s.id == targetChatId ? { ...s, messages: [...s.messages, aiMsg] } : s
       ));
     }, 1000);
   };
 
-  const activeMessages = (chatSessions.find(s => s.id === activeChatId) || {}).messages || [];
+  const activeMessages = (chatSessions.find(s => s.id == activeChatId) || {}).messages || [];
 
   return (
     <div className="layout-container">
@@ -447,13 +495,20 @@ function App() {
         activeChatId={activeChatId}
         onSelectChat={setActiveChatId}
         onNewChat={handleNewChat}
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        onDeleteChat={handleDeleteChat}
       />
       <div className="main-content">
         <Header />
-        <MainArea
-          messages={activeMessages}
-          onSendMessage={handleSendMessage}
-        />
+        {currentView === 'ruang-paham' ? (
+          <MainArea
+            messages={activeMessages}
+            onSendMessage={handleSendMessage}
+          />
+        ) : (
+          <MatrixArea />
+        )}
       </div>
     </div>
   );

@@ -747,3 +747,30 @@
     display: block;
   }
 }
+
+/* Delete history button styling */
+.delete-history-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.history-item:hover .delete-history-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.delete-history-btn:hover {
+  color: #EF4444 !important;
+  background-color: rgba(239, 68, 68, 0.1);
+}
