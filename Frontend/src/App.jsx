@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import './App.css';
+import api from './api';
 
 // Reusable Icon Component
 const Icon = ({ name, size = 20, className = "" }) => {
@@ -62,19 +64,18 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
 
       <div className="sidebar-content">
         <div className="nav-section">
-          <a
-            href="#"
+          <Link
+            to="/"
             className={`nav-item ${!activeChatId ? 'active' : ''}`}
             title={isCollapsed ? 'Ruang Paham' : ''}
-            onClick={(e) => { e.preventDefault(); onNewChat(); }}
           >
             <Icon name="grid" />
             <span>Ruang Paham</span>
-          </a>
-          <a href="#" className="nav-item" title={isCollapsed ? 'Matriks Tugas' : ''}>
+          </Link>
+          <Link to="/matrix" className="nav-item" title={isCollapsed ? 'Matriks Tugas' : ''}>
             <Icon name="matrix" />
             <span>Matriks Tugas</span>
-          </a>
+          </Link>
         </div>
 
         {chatSessions.length > 0 && (
@@ -107,6 +108,15 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
 
 // Header Component
 const Header = () => {
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <header className="header">
       <div className="header-left">
@@ -117,7 +127,7 @@ const Header = () => {
           <Icon name="bell" />
           <span className="notification-dot"></span>
         </button>
-        <div className="user-profile">
+        <div className="user-profile" onClick={handleLogout} title="Logout" style={{ cursor: 'pointer' }}>
           <img src="https://ui-avatars.com/api/?name=User&background=2563EB&color=fff" alt="User Profile" />
         </div>
       </div>
@@ -126,7 +136,7 @@ const Header = () => {
 };
 
 // Main Chat Area Component
-const MainArea = ({ messages, onSendMessage }) => {
+const MainArea = ({ messages, onSendMessage, loading }) => {
   const [inputText, setInputText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -234,8 +244,8 @@ const MainArea = ({ messages, onSendMessage }) => {
         ) : (
           <div className="messages-container animate-fade-in">
             {messages.map(msg => (
-              <div key={msg.id} className={`message-wrapper ${msg.sender === 'user' ? 'msg-user' : 'msg-ai'}`}>
-                {msg.sender === 'ai' && (
+              <div key={msg.id} className={`message-wrapper ${msg.sender === 'USER' ? 'msg-user' : 'msg-ai'}`}>
+                {msg.sender === 'BOT' && (
                   <div className="ai-avatar">
                     <Icon name="sparkles" size={16} />
                   </div>
@@ -251,15 +261,29 @@ const MainArea = ({ messages, onSendMessage }) => {
                       ))}
                     </div>
                   )}
-                  {msg.text && (
+                  {msg.content && (
                     <div className="message-text" style={{ whiteSpace: 'pre-wrap' }}>
-                      {msg.text}
+                      {msg.content}
                     </div>
                   )}
-                  <div className="message-time">{msg.time}</div>
+                  <div className="message-time">
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </div>
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="message-wrapper msg-ai">
+                <div className="ai-avatar">
+                  <Icon name="sparkles" size={16} />
+                </div>
+                <div className="message-content">
+                  <div className="message-text" style={{ color: 'var(--text-muted)' }}>
+                    Sedang memproses...
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} style={{ height: 1 }} />
           </div>
         )}
@@ -370,18 +394,23 @@ const MainArea = ({ messages, onSendMessage }) => {
 // Main App Layout
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [chatSessions, setChatSessions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pahamin_chats');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [chatSessions, setChatSessions] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // Persist to localStorage whenever chatSessions change
+  // Load semua sesi chat dari backend waktu pertama kali buka
   useEffect(() => {
-    localStorage.setItem('pahamin_chats', JSON.stringify(chatSessions));
-  }, [chatSessions]);
+    fetchSessions();
+  }, []);
+
+  const fetchSessions = async () => {
+    try {
+      const res = await api.get('/api/chat/sessions');
+      setChatSessions(res.data);
+    } catch (err) {
+      console.error('Gagal load sessions:', err);
+    }
+  };
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -391,49 +420,71 @@ function App() {
     setActiveChatId(null);
   };
 
-  const handleSendMessage = (text, files) => {
-    let chatId = activeChatId;
+  const handleSelectChat = async (sessionId) => {
+    setActiveChatId(sessionId);
+    try {
+      const res = await api.get(`/api/chat/sessions/${sessionId}/messages`);
+      setChatSessions(prev => prev.map(s =>
+        s.id === sessionId ? { ...s, messages: res.data } : s
+      ));
+    } catch (err) {
+      console.error('Gagal load messages:', err);
+    }
+  };
 
-    // If no active chat, create a new session
-    if (!chatId) {
-      chatId = Date.now();
-      const title = text.trim()
-        ? (text.length > 30 ? text.substring(0, 30) + '...' : text)
-        : (files.length > 0 ? files[0].name : 'Chat Baru');
+  const handleSendMessage = async (text, files) => {
+    let sessionId = activeChatId;
 
-      setChatSessions(prev => [
-        { id: chatId, title, messages: [] },
-        ...prev
-      ]);
-      setActiveChatId(chatId);
+    // Kalau belum ada sesi aktif, buat sesi baru
+    if (!sessionId) {
+      try {
+        const title = text.trim()
+          ? (text.length > 30 ? text.substring(0, 30) + '...' : text)
+          : (files.length > 0 ? files[0].name : 'Chat Baru');
+
+        const res = await api.post('/api/chat/sessions', { title });
+        const newSession = { ...res.data, messages: [] };
+        setChatSessions(prev => [newSession, ...prev]);
+        sessionId = newSession.id;
+        setActiveChatId(sessionId);
+      } catch (err) {
+        console.error('Gagal buat session:', err);
+        return;
+      }
     }
 
+    // Optimistic update — tampilin pesan user langsung
     const userMsg = {
       id: Date.now(),
-      sender: 'user',
-      text,
-      files,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      sender: 'USER',
+      content: text,
+      createdAt: new Date().toISOString()
     };
 
-    // Append user message to the correct session
     setChatSessions(prev => prev.map(s =>
-      s.id === chatId ? { ...s, messages: [...s.messages, userMsg] } : s
+      s.id === sessionId
+        ? { ...s, messages: [...(s.messages || []), userMsg] }
+        : s
     ));
 
-    // Simulate AI response after 1s
-    const targetChatId = chatId;
-    setTimeout(() => {
-      const aiMsg = {
-        id: Date.now() + 1,
-        sender: 'ai',
-        text: 'Berikut contoh beberapa poin penting dari hasil resume kuliah tamu:\n\n• Topik utama membahas tentang pentingnya adaptasi teknologi di dunia kerja.\n• Disampaikan juga berbagai tantangan yang dihadapi dalam transformasi digital.\n• Tips praktis untuk meningkatkan keterampilan yang relevan dengan industri saat ini.',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+    // Kirim ke backend
+    setLoading(true);
+    try {
+      const res = await api.post(`/api/chat/sessions/${sessionId}/messages`, { content: text });
+      const botMsg = res.data;
       setChatSessions(prev => prev.map(s =>
-        s.id === targetChatId ? { ...s, messages: [...s.messages, aiMsg] } : s
+        s.id === sessionId
+          ? {
+            ...s, messages: [...(s.messages || []).filter(m => m.id !== userMsg.id),
+            { ...userMsg, id: Date.now() - 1 }, botMsg]
+          }
+          : s
       ));
-    }, 1000);
+    } catch (err) {
+      console.error('Gagal kirim pesan:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const activeMessages = (chatSessions.find(s => s.id === activeChatId) || {}).messages || [];
@@ -445,7 +496,7 @@ function App() {
         toggleSidebar={toggleSidebar}
         chatSessions={chatSessions}
         activeChatId={activeChatId}
-        onSelectChat={setActiveChatId}
+        onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
       />
       <div className="main-content">
@@ -453,6 +504,7 @@ function App() {
         <MainArea
           messages={activeMessages}
           onSendMessage={handleSendMessage}
+          loading={loading}
         />
       </div>
     </div>
