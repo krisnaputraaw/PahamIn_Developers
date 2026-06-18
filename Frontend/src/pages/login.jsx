@@ -1,8 +1,38 @@
 import "./login.css";
 import { MdEmail } from "react-icons/md";
 import { FaLock } from "react-icons/fa";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api";
 
 function Login() {
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await api.post('/api/auth/login', { email, password });
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify({
+        email: response.data.email,
+        username: response.data.username
+      }));
+      navigate('/');
+    } catch {
+      setError('Email atau password salah');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-overlay">
       <div className="login-modal">
@@ -10,13 +40,22 @@ function Login() {
         <h1 className="login-title">Login</h1>
         <p className="login-subtitle">Welcome back!</p>
 
-        <form>
+        {error && (
+          <div style={{ color: 'red', fontSize: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin}>
 
           <div className="input-box">
             <MdEmail className="input-icon" />
             <input
               type="email"
               placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
@@ -25,6 +64,9 @@ function Login() {
             <input
               type="password"
               placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
 
@@ -39,8 +81,8 @@ function Login() {
 
           </div>
 
-          <button type="submit" className="login-button">
-            Login
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? 'Loading...' : 'Login'}
           </button>
 
         </form>
