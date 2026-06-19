@@ -6,6 +6,7 @@ import './index.css';
 import App from './App.jsx';
 import Matrix from './pages/matrix';
 import Login from './pages/login';
+import Admin from './pages/admin';
 import PrivateRoute from './PrivateRoute';
 
 createRoot(document.getElementById('root')).render(
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<PrivateRoute><App /></PrivateRoute>} />
         <Route path="/matrix" element={<PrivateRoute><Matrix /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

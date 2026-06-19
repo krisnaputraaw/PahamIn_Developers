@@ -23,7 +23,8 @@ function Login() {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify({
         email: response.data.email,
-        username: response.data.username
+        username: response.data.username,
+        role: response.data.role
       }));
       navigate('/');
     } catch {

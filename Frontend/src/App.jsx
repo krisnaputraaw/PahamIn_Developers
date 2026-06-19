@@ -21,7 +21,9 @@ const Icon = ({ name, size = 20, className = "" }) => {
     download: <><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /><path d="M12 4v12" /><path d="M8 12l4 4 4-4" /></>,
     sparkles: <><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="currentColor" stroke="none" /></>,
     plus_circle: <><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /><path d="M12 8v8M8 12h8" stroke="white" strokeWidth="2" strokeLinecap="round" /></>,
-    trash: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>
+    trash: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>,
+    shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+    users: <><circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /><path d="M21 21v-2a4 4 0 00-3-3.87" /><path d="M9 21v-2a4 4 0 00-8 0v2" /></>
   };
 
   return (
@@ -43,6 +45,9 @@ const Icon = ({ name, size = 20, className = "" }) => {
 
 // Sidebar Component
 const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSelectChat, onNewChat, onDeleteChat }) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user.role === 'ADMIN';
+
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -78,6 +83,12 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
             <Icon name="matrix" />
             <span>Matriks Tugas</span>
           </Link>
+          {isAdmin && (
+            <Link to="/admin" className="nav-item" title={isCollapsed ? 'Admin Panel' : ''}>
+              <Icon name="shield" />
+              <span>Admin Panel</span>
+            </Link>
+          )}
         </div>
 
         {chatSessions.length > 0 && (
