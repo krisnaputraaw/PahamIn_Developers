@@ -20,7 +20,10 @@ const Icon = ({ name, size = 20, className = "" }) => {
     image: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></>,
     download: <><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /><path d="M12 4v12" /><path d="M8 12l4 4 4-4" /></>,
     sparkles: <><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z" fill="currentColor" stroke="none" /></>,
-    plus_circle: <><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /><path d="M12 8v8M8 12h8" stroke="white" strokeWidth="2" strokeLinecap="round" /></>
+    plus_circle: <><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none" /><path d="M12 8v8M8 12h8" stroke="white" strokeWidth="2" strokeLinecap="round" /></>,
+    trash: <><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></>,
+    shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+    users: <><circle cx="9" cy="7" r="4" /><path d="M17 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /><path d="M21 21v-2a4 4 0 00-3-3.87" /><path d="M9 21v-2a4 4 0 00-8 0v2" /></>
   };
 
   return (
@@ -41,7 +44,10 @@ const Icon = ({ name, size = 20, className = "" }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSelectChat, onNewChat }) => {
+const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSelectChat, onNewChat, onDeleteChat }) => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user.role === 'ADMIN';
+
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -68,6 +74,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
             to="/"
             className={`nav-item ${!activeChatId ? 'active' : ''}`}
             title={isCollapsed ? 'Ruang Paham' : ''}
+            onClick={onNewChat}
           >
             <Icon name="grid" />
             <span>Ruang Paham</span>
@@ -76,6 +83,12 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
             <Icon name="matrix" />
             <span>Matriks Tugas</span>
           </Link>
+          {isAdmin && (
+            <Link to="/admin" className="nav-item" title={isCollapsed ? 'Admin Panel' : ''}>
+              <Icon name="shield" />
+              <span>Admin Panel</span>
+            </Link>
+          )}
         </div>
 
         {chatSessions.length > 0 && (
@@ -85,11 +98,27 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
               <a
                 key={session.id}
                 href="#"
-                className={`nav-item history-item ${session.id === activeChatId ? 'active' : ''}`}
+                className={`nav-item history-item ${session.id == activeChatId ? 'active' : ''}`}
                 title={isCollapsed ? session.title : ''}
-                onClick={(e) => { e.preventDefault(); onSelectChat(session.id); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectChat(session.id);
+                }}
               >
                 <span className="history-text">{session.title}</span>
+                {!isCollapsed && (
+                  <button
+                    className="delete-history-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onDeleteChat(session.id);
+                    }}
+                    title="Hapus percakapan"
+                  >
+                    <Icon name="trash" size={14} />
+                  </button>
+                )}
               </a>
             ))}
           </div>
@@ -253,12 +282,15 @@ const MainArea = ({ messages, onSendMessage, loading }) => {
                 <div className="message-content">
                   {msg.files && msg.files.length > 0 && (
                     <div className="message-files">
-                      {msg.files.map((f, i) => (
-                        <div key={i} className="msg-file-pill">
-                          <Icon name="file" size={12} />
-                          <span>{f.name.length > 20 ? f.name.substring(0, 20) + '...' : f.name}</span>
-                        </div>
-                      ))}
+                      {msg.files.map((f, i) => {
+                        const fileName = f && f.name ? f.name : 'Dokumen';
+                        return (
+                          <div key={i} className="msg-file-pill">
+                            <Icon name="file" size={12} />
+                            <span>{fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {msg.content && (
@@ -398,11 +430,6 @@ function App() {
   const [activeChatId, setActiveChatId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Load semua sesi chat dari backend waktu pertama kali buka
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
   const fetchSessions = async () => {
     try {
       const res = await api.get('/api/chat/sessions');
@@ -412,12 +439,30 @@ function App() {
     }
   };
 
+  // Load semua sesi chat dari backend waktu pertama kali buka
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchSessions();
+  }, []);
+
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
   const handleNewChat = () => {
     setActiveChatId(null);
+  };
+
+  const handleDeleteChat = async (chatId) => {
+    try {
+      await api.delete(`/api/chat/sessions/${chatId}`);
+      setChatSessions(prev => prev.filter(s => s.id != chatId));
+      if (activeChatId == chatId) {
+        setActiveChatId(null);
+      }
+    } catch (err) {
+      console.error('Gagal hapus session:', err);
+    }
   };
 
   const handleSelectChat = async (sessionId) => {
@@ -453,11 +498,16 @@ function App() {
       }
     }
 
-    // Optimistic update — tampilin pesan user langsung
+    const serializedFiles = files ? files.map(f => ({
+      name: f.name || 'Dokumen',
+      size: f.size || 0
+    })) : [];
+
     const userMsg = {
       id: Date.now(),
       sender: 'USER',
       content: text,
+      files: serializedFiles,
       createdAt: new Date().toISOString()
     };
 
@@ -487,7 +537,7 @@ function App() {
     }
   };
 
-  const activeMessages = (chatSessions.find(s => s.id === activeChatId) || {}).messages || [];
+  const activeMessages = (chatSessions.find(s => s.id == activeChatId) || {}).messages || [];
 
   return (
     <div className="layout-container">
@@ -498,6 +548,7 @@ function App() {
         activeChatId={activeChatId}
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
+        onDeleteChat={handleDeleteChat}
       />
       <div className="main-content">
         <Header />

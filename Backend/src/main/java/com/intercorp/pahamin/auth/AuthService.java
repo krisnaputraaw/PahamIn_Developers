@@ -38,7 +38,7 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getUsername());
+        return new AuthResponse(token, user.getEmail(), user.getUsername(), user.getRole());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -53,6 +53,6 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getUsername());
+        return new AuthResponse(token, user.getEmail(), user.getUsername(), user.getRole());
     }
 }
