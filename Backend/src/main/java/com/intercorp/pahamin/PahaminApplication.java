@@ -27,9 +27,7 @@ public class PahaminApplication {
 						.role("ADMIN")
 						.build();
 				userRepository.save(admin);
-				System.out.println("==================================================");
-				System.out.println("DEFAULT ADMIN CREATED: admin@example.com / admin123");
-				System.out.println("==================================================");
+				
 			}
 
 			// Seed User
@@ -41,9 +39,7 @@ public class PahaminApplication {
 						.role("USER")
 						.build();
 				userRepository.save(user);
-				System.out.println("==================================================");
-				System.out.println("DEFAULT USER CREATED: user@example.com / password123");
-				System.out.println("==================================================");
+				
 			}
 		};
 	}

@@ -26,7 +26,7 @@ public class AdminAnalyticsController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAnalytics() {
-        long totalUsers = userRepository.count();
+        long totalUsers = userRepository.countByRole("USER");
         long totalChats = chatMessageRepository.count();
         long totalTasks = taskRepository.count();
 
@@ -37,7 +37,7 @@ public class AdminAnalyticsController {
             LocalDateTime start = date.atStartOfDay();
             LocalDateTime end = date.atTime(LocalTime.MAX);
 
-            long userCount = userRepository.countByCreatedAtBetween(start, end);
+            long userCount = userRepository.countByRoleAndCreatedAtBetween("USER", start, end);
             long chatCount = chatMessageRepository.countByCreatedAtBetween(start, end);
             long taskCount = taskRepository.countByCreatedAtBetween(start, end);
 
