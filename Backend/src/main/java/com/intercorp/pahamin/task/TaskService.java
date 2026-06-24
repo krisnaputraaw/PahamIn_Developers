@@ -5,6 +5,9 @@ import com.intercorp.pahamin.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import com.intercorp.pahamin.bot.SchedulerBot;
+import com.intercorp.pahamin.user.UserProfile;
+import com.intercorp.pahamin.user.UserProfileRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -14,8 +17,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TaskService {
 
+    // dependency injection untuk repository dan bot
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -25,15 +30,21 @@ public class TaskService {
 
     public EisenhowerTask addTask(TaskRequest request) {
         User user = getCurrentUser();
-        EisenhowerTask task = EisenhowerTask.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .urgent(request.isUrgent())
-                .important(request.isImportant())
-                .deadline(request.getDeadline())
-                .done(false)
-                .user(user)
-                .build();
+
+        EisenhowerTask task = new EisenhowerTask();
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setUrgent(request.isUrgent());
+        task.setImportant(request.isImportant());
+        task.setDeadline(request.getDeadline());
+        task.setDone(false);
+        task.setUser(user);
+
+        // Pakai SchedulerBot untuk suggest kuadran
+        UserProfile profile = userProfileRepository.findByUser(user).orElse(null);
+        SchedulerBot schedulerBot = new SchedulerBot(user.getUsername(), profile);
+        task.setQuadrant(schedulerBot.suggestTaskQuadrant(task));
+
         return taskRepository.save(task);
     }
 
@@ -41,8 +52,7 @@ public class TaskService {
         User user = getCurrentUser();
         List<EisenhowerTask> tasks = taskRepository.findByUser(user);
         return tasks.stream().collect(Collectors.groupingBy(
-                t -> t.getQuadrant().name()
-        ));
+                t -> t.getQuadrant().name()));
     }
 
     public List<EisenhowerTask> getTasksByQuadrant(EisenhowerQuadrant quadrant) {
@@ -65,7 +75,7 @@ public class TaskService {
         task.setUrgent(request.isUrgent());
         task.setImportant(request.isImportant());
         task.setDeadline(request.getDeadline());
-        task.setQuadrant(task.determineQuadrant());
+        task.setQuadrant(task.getQuadrantEnum());
         return taskRepository.save(task);
     }
 

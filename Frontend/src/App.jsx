@@ -135,15 +135,57 @@ const Sidebar = ({ isCollapsed, toggleSidebar, chatSessions, activeChatId, onSel
   );
 };
 
+// Mock notifications data
+const MOCK_NOTIFICATIONS = [
+  { id: 1, type: 'task', icon: '📋', title: 'Tugas baru ditambahkan', desc: '"Finalize Chemistry Lab Report" masuk ke kuadran Do', time: '2 menit lalu', read: false },
+  { id: 2, type: 'streak', icon: '🔥', title: 'Streak 3 hari!', desc: 'Keren! Kamu sudah belajar 3 hari berturut-turut', time: '1 jam lalu', read: false },
+  { id: 3, type: 'upload', icon: '📄', title: 'File berhasil diunggah', desc: 'Materi_Fisika_Bab5.pdf sudah siap diproses', time: '3 jam lalu', read: false },
+  { id: 4, type: 'ai', icon: '✨', title: 'Ringkasan materi siap', desc: 'PahamIn sudah merangkum materi Kalkulus II untukmu', time: '5 jam lalu', read: true },
+  { id: 5, type: 'reminder', icon: '⏰', title: 'Pengingat deadline', desc: '"Submit Scholarship Application" jatuh tempo besok', time: '6 jam lalu', read: true },
+  { id: 6, type: 'quiz', icon: '🎯', title: 'Kuis selesai!', desc: 'Skor kamu 85/100 untuk kuis Struktur Data', time: '1 hari lalu', read: true },
+  { id: 7, type: 'welcome', icon: '👋', title: 'Selamat datang di PahamIn!', desc: 'Mulai upload materi dan biarkan AI membantumu belajar', time: '2 hari lalu', read: true },
+];
+
 // Header Component
 const Header = () => {
-
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const dropdownRef = useRef(null);
+  const notifRef = useRef(null);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+  const avatarUrl = profile.avatarUrl || null;
+  const displayName = user.username || user.email || 'User';
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const markAsRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   return (
@@ -152,12 +194,113 @@ const Header = () => {
         <div className="header-title">PahamIn</div>
       </div>
       <div className="header-actions">
-        <button className="notification-btn">
-          <Icon name="bell" />
-          <span className="notification-dot"></span>
-        </button>
-        <div className="user-profile" onClick={handleLogout} title="Logout" style={{ cursor: 'pointer' }}>
-          <img src="https://ui-avatars.com/api/?name=User&background=2563EB&color=fff" alt="User Profile" />
+        <div style={{ position: 'relative' }} ref={notifRef}>
+          <button
+            className="notification-btn"
+            onClick={() => { setShowNotifications(!showNotifications); setShowDropdown(false); }}
+          >
+            <Icon name="bell" />
+            {unreadCount > 0 && <span className="notification-dot"></span>}
+          </button>
+          {showNotifications && (
+            <div className="notif-dropdown">
+              <div className="notif-dropdown-header">
+                <span className="notif-dropdown-title">Notifikasi</span>
+                {unreadCount > 0 && (
+                  <button className="notif-mark-all" onClick={markAllAsRead}>
+                    Tandai semua dibaca
+                  </button>
+                )}
+              </div>
+              <div className="notif-dropdown-list">
+                {notifications.map(n => (
+                  <div
+                    key={n.id}
+                    className={`notif-item ${n.read ? '' : 'unread'}`}
+                    onClick={() => markAsRead(n.id)}
+                  >
+                    <div className="notif-item-icon">{n.icon}</div>
+                    <div className="notif-item-content">
+                      <div className="notif-item-title">{n.title}</div>
+                      <div className="notif-item-desc">{n.desc}</div>
+                      <div className="notif-item-time">{n.time}</div>
+                    </div>
+                    {!n.read && <div className="notif-unread-dot"></div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ position: 'relative' }} ref={dropdownRef}>
+          <div
+            className="user-profile"
+            onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false); }}
+            title="Profil"
+            style={{ cursor: 'pointer' }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="User Profile" />
+            ) : (
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563EB&color=fff`}
+                alt="User Profile"
+              />
+            )}
+          </div>
+          {showDropdown && (
+            <div className="header-profile-dropdown" style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              right: 0,
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 10px 40px -10px rgba(0,0,0,0.18)',
+              border: '1px solid var(--border)',
+              padding: '0.35rem',
+              minWidth: '160px',
+              zIndex: 100,
+              animation: 'fadeIn 0.15s ease-out forwards'
+            }}>
+              <button
+                onClick={() => { setShowDropdown(false); navigate('/profile'); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  background: 'transparent', border: 'none', width: '100%',
+                  padding: '0.6rem 0.85rem', borderRadius: '8px',
+                  color: 'var(--text-muted)', fontSize: '0.88rem',
+                  fontFamily: 'inherit', fontWeight: 500, cursor: 'pointer',
+                  textAlign: 'left', transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => { e.target.style.backgroundColor = 'var(--bg-main)'; e.target.style.color = 'var(--text-dark)'; }}
+                onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = 'var(--text-muted)'; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                Profil
+              </button>
+              <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.25rem 0.5rem' }}></div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.6rem',
+                  background: 'transparent', border: 'none', width: '100%',
+                  padding: '0.6rem 0.85rem', borderRadius: '8px',
+                  color: 'var(--text-muted)', fontSize: '0.88rem',
+                  fontFamily: 'inherit', fontWeight: 500, cursor: 'pointer',
+                  textAlign: 'left', transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => { e.target.style.backgroundColor = '#FEF2F2'; e.target.style.color = '#EF4444'; }}
+                onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = 'var(--text-muted)'; }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                Keluar
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

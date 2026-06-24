@@ -1,38 +1,21 @@
 package com.intercorp.pahamin.task;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
 @Table(name = "tasks")
-public class EisenhowerTask {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @NotBlank
-    @Column(nullable = false)
-    private String title;
-
-    private String description;
-
-    @Column(nullable = false)
-    private boolean urgent;
-
-    @Column(nullable = false)
-    private boolean important;
+public class EisenhowerTask extends Task {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -42,23 +25,30 @@ public class EisenhowerTask {
 
     private boolean done;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private com.intercorp.pahamin.user.User user;
 
-    @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.quadrant = determineQuadrant();
+    @Override
+    public String determineQuadrant() {
+        if (isUrgent() && isImportant()) return EisenhowerQuadrant.DO.name();
+        if (!isUrgent() && isImportant()) return EisenhowerQuadrant.DECIDE.name();
+        if (isUrgent() && !isImportant()) return EisenhowerQuadrant.DELEGATE.name();
+        return EisenhowerQuadrant.DELETE.name();
     }
 
-    public EisenhowerQuadrant determineQuadrant() {
-        if (urgent && important) return EisenhowerQuadrant.DO;
-        if (!urgent && important) return EisenhowerQuadrant.DECIDE;
-        if (urgent && !important) return EisenhowerQuadrant.DELEGATE;
+    public EisenhowerQuadrant getQuadrantEnum() {
+        if (isUrgent() && isImportant()) return EisenhowerQuadrant.DO;
+        if (!isUrgent() && isImportant()) return EisenhowerQuadrant.DECIDE;
+        if (isUrgent() && !isImportant()) return EisenhowerQuadrant.DELEGATE;
         return EisenhowerQuadrant.DELETE;
+    }
+
+    @PrePersist
+    @Override
+    public void prePersist() {
+        super.prePersist();
+        this.quadrant = getQuadrantEnum();
     }
 }
