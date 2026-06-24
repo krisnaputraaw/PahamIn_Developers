@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../App.css';
 import './profile.css';
+import api from '../api';
 
 // ===== Icon Component (same pattern as the rest of the app) =====
 const Icon = ({ name, size = 20, className = "" }) => {
@@ -90,7 +91,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -99,6 +100,21 @@ const Header = () => {
   const displayName = user.username || user.email || 'User';
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/api/notifications');
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error('Gagal memuat notifikasi:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -119,12 +135,22 @@ const Header = () => {
     navigate('/login');
   };
 
-  const markAsRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markAsRead = async (id) => {
+    try {
+      await api.patch(`/api/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error('Gagal menandai dibaca:', err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      await api.patch('/api/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Gagal menandai semua dibaca:', err);
+    }
   };
 
   return (
@@ -161,8 +187,8 @@ const Header = () => {
                     <div className="notif-item-icon">{n.icon}</div>
                     <div className="notif-item-content">
                       <div className="notif-item-title">{n.title}</div>
-                      <div className="notif-item-desc">{n.desc}</div>
-                      <div className="notif-item-time">{n.time}</div>
+                      <div className="notif-item-desc">{n.description || n.desc}</div>
+                      <div className="notif-item-time">{n.time || (n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}</div>
                     </div>
                     {!n.read && <div className="notif-unread-dot"></div>}
                   </div>
@@ -247,38 +273,64 @@ function Profile() {
   // Get user data from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Profile state (localStorage-backed)
-  const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-  const [fullName, setFullName] = useState(savedProfile.fullName || user.username || '');
-  const [emailField, setEmailField] = useState(savedProfile.email || user.email || '');
-  const [nickname, setNickname] = useState(savedProfile.nickname || '');
-  const [major, setMajor] = useState(savedProfile.major || '');
-  const [bio, setBio] = useState(savedProfile.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState(savedProfile.avatarUrl || null);
+  // Profile states
+  const [fullName, setFullName] = useState('');
+  const [emailField, setEmailField] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [major, setMajor] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(null);
 
-  // Mock streak data — computed from localStorage
-  const getStreakData = () => {
-    const lastChatAt = localStorage.getItem('lastChatAt');
-    if (!lastChatAt) return { streakCount: 0, isActive: false };
+  // Metrics & Streak states
+  const [streakCount, setStreakCount] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [filesUploaded, setFilesUploaded] = useState(0);
+  const [tasksCompleted, setTasksCompleted] = useState(0);
+  const [quizCompleted, setQuizCompleted] = useState(0);
+  const [avgPerDay, setAvgPerDay] = useState('2 J');
 
-    const lastActive = new Date(lastChatAt);
-    const now = new Date();
-    const diffHours = (now - lastActive) / (1000 * 60 * 60);
-    const isActive = diffHours < 24;
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/api/user/profile');
+        const data = res.data;
+        if (data) {
+          setFullName(data.fullName || '');
+          setNickname(data.nickname || '');
+          setEmailField(data.user?.email || data.email || user.email || '');
+          setMajor(data.major || '');
+          setBio(data.bio || '');
+          setAvatarUrl(data.avatarUrl || null);
+          
+          setStreakCount(data.streakCount || 0);
+          setFilesUploaded(data.filesUploaded || 0);
+          setTasksCompleted(data.tasksCompleted || 0);
+          setQuizCompleted(data.quizCompleted || 0);
+          setAvgPerDay(data.avgPerDay || '2 J');
 
-    // Simple streak count from localStorage
-    const count = parseInt(localStorage.getItem('streakCount') || '0', 10);
-    return { streakCount: count, isActive };
-  };
+          if (data.lastChatAt) {
+            const lastActive = new Date(data.lastChatAt);
+            const now = new Date();
+            const diffHours = (now - lastActive) / (1000 * 60 * 60);
+            setIsActive(diffHours < 24);
+          } else {
+            setIsActive(false);
+          }
 
-  const { streakCount, isActive } = getStreakData();
+          localStorage.setItem('userProfile', JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error('Gagal memuat profil dari server:', err);
+      }
+    };
+    fetchProfile();
+  }, [user.email]);
 
-  // Mock metrics
   const metrics = {
-    filesUploaded: parseInt(localStorage.getItem('filesUploaded') || '12', 10),
-    tasksCompleted: parseInt(localStorage.getItem('tasksCompleted') || '5', 10),
-    quizCompleted: parseInt(localStorage.getItem('quizCompleted') || '5', 10),
-    avgPerDay: localStorage.getItem('avgPerDay') || '2 J',
+    filesUploaded,
+    tasksCompleted,
+    quizCompleted,
+    avgPerDay,
   };
 
   const showToast = (msg) => {
@@ -286,18 +338,35 @@ function Profile() {
     setTimeout(() => setToast(''), 2500);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const profileData = {
-      ...savedProfile,
       fullName,
       email: emailField,
       nickname,
       major,
       bio,
       avatarUrl,
+      filesUploaded,
+      quizCompleted,
+      avgPerDay,
     };
-    localStorage.setItem('userProfile', JSON.stringify(profileData));
-    showToast('Profil berhasil disimpan!');
+    try {
+      const res = await api.put('/api/user/profile', profileData);
+      const data = res.data;
+      localStorage.setItem('userProfile', JSON.stringify(data));
+
+      // Update local user cache
+      const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localUser.email = emailField;
+      localUser.username = nickname || fullName || localUser.username;
+      localStorage.setItem('user', JSON.stringify(localUser));
+
+      showToast('Profil berhasil disimpan!');
+    } catch (err) {
+      console.error('Gagal menyimpan profil:', err);
+      const detailedError = err.response?.data?.message || err.response?.data || err.message || 'Unknown error';
+      showToast('Gagal menyimpan profil: ' + (typeof detailedError === 'object' ? JSON.stringify(detailedError) : detailedError));
+    }
   };
 
   const handleAvatarChange = (e) => {
@@ -305,12 +374,31 @@ function Profile() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = reader.result;
       setAvatarUrl(dataUrl);
-      const profileData = { ...JSON.parse(localStorage.getItem('userProfile') || '{}'), avatarUrl: dataUrl };
-      localStorage.setItem('userProfile', JSON.stringify(profileData));
-      showToast('Foto profil diperbarui!');
+
+      const profileData = {
+        fullName,
+        email: emailField,
+        nickname,
+        major,
+        bio,
+        avatarUrl: dataUrl,
+        filesUploaded,
+        quizCompleted,
+        avgPerDay,
+      };
+
+      try {
+        const res = await api.put('/api/user/profile', profileData);
+        localStorage.setItem('userProfile', JSON.stringify(res.data));
+        showToast('Foto profil diperbarui!');
+      } catch (err) {
+        console.error('Gagal menyimpan foto profil ke server:', err);
+        const detailedError = err.response?.data?.message || err.response?.data || err.message || 'Unknown error';
+        showToast('Gagal menyimpan foto profil: ' + (typeof detailedError === 'object' ? JSON.stringify(detailedError) : detailedError));
+      }
     };
     reader.readAsDataURL(file);
   };

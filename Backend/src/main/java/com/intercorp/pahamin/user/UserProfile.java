@@ -25,6 +25,28 @@ public class UserProfile {
     private Integer semester;
     private String city;
 
+    private String nickname;
+
+    @Column(columnDefinition = "TEXT")
+    private String avatarUrl;
+
+    @Builder.Default
+    private Integer streakCount = 0;
+
+    private java.time.LocalDateTime lastChatAt;
+
+    @Builder.Default
+    private Integer filesUploaded = 0;
+
+    @Builder.Default
+    private Integer quizCompleted = 0;
+
+    @Builder.Default
+    private String avgPerDay = "0 J";
+
+    @Transient
+    private Integer tasksCompleted;
+
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

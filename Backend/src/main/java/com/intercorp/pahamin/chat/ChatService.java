@@ -19,6 +19,7 @@ public class ChatService {
     private final ChatMessageRepository messageRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final com.intercorp.pahamin.notification.NotificationService notificationService;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -61,8 +62,54 @@ public class ChatService {
                 .build();
         messageRepository.save(userMessage);
 
+        // Update streak belajar di profil user
+        UserProfile profile = userProfileRepository.findByUser(user)
+                .orElseGet(() -> UserProfile.builder()
+                        .user(user)
+                        .streakCount(0)
+                        .filesUploaded(0)
+                        .quizCompleted(0)
+                        .avgPerDay("0 J")
+                        .build());
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        boolean streakIncremented = false;
+        if (profile.getStreakCount() == null) {
+            profile.setStreakCount(0);
+        }
+
+        if (profile.getLastChatAt() == null) {
+            profile.setStreakCount(1);
+            streakIncremented = true;
+        } else {
+            java.time.LocalDate lastChatDate = profile.getLastChatAt().toLocalDate();
+            java.time.LocalDate today = now.toLocalDate();
+
+            if (lastChatDate.isBefore(today)) {
+                if (lastChatDate.equals(today.minusDays(1))) {
+                    profile.setStreakCount(profile.getStreakCount() + 1);
+                    streakIncremented = true;
+                } else {
+                    profile.setStreakCount(1);
+                    streakIncremented = true;
+                }
+            }
+        }
+        profile.setLastChatAt(now);
+        profile = userProfileRepository.save(profile);
+
+        // Kirim notifikasi jika streak naik / menyala kembali
+        if (streakIncremented) {
+            notificationService.createNotification(
+                    user,
+                    "streak",
+                    "🔥",
+                    "Streak " + profile.getStreakCount() + " hari!",
+                    "Keren! Kamu sudah belajar " + profile.getStreakCount() + " hari berturut-turut"
+            );
+        }
+
         // Instantiate LearningChatbot dan panggil respond()
-        UserProfile profile = userProfileRepository.findByUser(user).orElse(null);
         LearningChatbot bot = new LearningChatbot(user.getUsername(), profile, "casual");
         String botResponse = bot.respond(content);
 

@@ -10,6 +10,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final com.intercorp.pahamin.task.TaskRepository taskRepository;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -19,14 +20,33 @@ public class UserService {
 
     public UserProfile getProfile() {
         User user = getCurrentUser();
-        return userProfileRepository.findByUser(user)
-                .orElse(UserProfile.builder().user(user).build());
+        UserProfile profile = userProfileRepository.findByUser(user)
+                .orElseGet(() -> userProfileRepository.save(UserProfile.builder()
+                        .user(user)
+                        .streakCount(0)
+                        .filesUploaded(0)
+                        .quizCompleted(0)
+                        .avgPerDay("0 J")
+                        .build()));
+
+        // Hitung tasksCompleted secara dinamis
+        int completedCount = taskRepository.findByUserAndDone(user, true).size();
+        profile.setTasksCompleted(completedCount);
+
+        return profile;
     }
 
     public UserProfile updateProfile(UserProfileRequest request) {
         User user = getCurrentUser();
+
+        // Update user email if it changed
+        if (request.getEmail() != null && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
+            user.setEmail(request.getEmail());
+            userRepository.save(user);
+        }
+
         UserProfile profile = userProfileRepository.findByUser(user)
-                .orElse(UserProfile.builder().user(user).build());
+                .orElseGet(() -> UserProfile.builder().user(user).build());
 
         profile.setFullName(request.getFullName());
         profile.setBio(request.getBio());
@@ -34,7 +54,26 @@ public class UserService {
         profile.setMajor(request.getMajor());
         profile.setSemester(request.getSemester());
         profile.setCity(request.getCity());
+        
+        // New fields
+        profile.setNickname(request.getNickname());
+        profile.setAvatarUrl(request.getAvatarUrl());
+        if (request.getFilesUploaded() != null) {
+            profile.setFilesUploaded(request.getFilesUploaded());
+        }
+        if (request.getQuizCompleted() != null) {
+            profile.setQuizCompleted(request.getQuizCompleted());
+        }
+        if (request.getAvgPerDay() != null) {
+            profile.setAvgPerDay(request.getAvgPerDay());
+        }
 
-        return userProfileRepository.save(profile);
+        UserProfile saved = userProfileRepository.save(profile);
+
+        // Hitung tasksCompleted secara dinamis
+        int completedCount = taskRepository.findByUserAndDone(user, true).size();
+        saved.setTasksCompleted(completedCount);
+
+        return saved;
     }
 }

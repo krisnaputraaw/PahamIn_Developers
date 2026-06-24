@@ -21,6 +21,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final com.intercorp.pahamin.notification.NotificationService notificationService;
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -45,7 +46,21 @@ public class TaskService {
         SchedulerBot schedulerBot = new SchedulerBot(user.getUsername(), profile);
         task.setQuadrant(schedulerBot.suggestTaskQuadrant(task));
 
-        return taskRepository.save(task);
+        EisenhowerTask savedTask = taskRepository.save(task);
+
+        // Kirim Notifikasi tugas baru berhasil ditambahkan
+        String quadrantLabel = savedTask.getQuadrant().name();
+        String friendlyQuadrant = quadrantLabel.substring(0, 1).toUpperCase() + quadrantLabel.substring(1).toLowerCase();
+        
+        notificationService.createNotification(
+                user,
+                "task",
+                "📋",
+                "Tugas baru ditambahkan",
+                "\"" + savedTask.getTitle() + "\" masuk ke kuadran " + friendlyQuadrant
+        );
+
+        return savedTask;
     }
 
     public Map<String, List<EisenhowerTask>> getAllTasksGrouped() {

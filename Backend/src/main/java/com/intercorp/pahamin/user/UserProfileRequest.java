@@ -10,4 +10,10 @@ public class UserProfileRequest {
     private String major;
     private Integer semester;
     private String city;
+    private String nickname;
+    private String avatarUrl;
+    private Integer filesUploaded;
+    private Integer quizCompleted;
+    private String avgPerDay;
+    private String email;
 }

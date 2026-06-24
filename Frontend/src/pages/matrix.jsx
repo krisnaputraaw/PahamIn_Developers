@@ -108,7 +108,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -117,6 +117,21 @@ const Header = () => {
   const displayName = user.username || user.email || 'User';
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/api/notifications');
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error('Gagal memuat notifikasi:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -137,12 +152,22 @@ const Header = () => {
     navigate('/login');
   };
 
-  const markAsRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markAsRead = async (id) => {
+    try {
+      await api.patch(`/api/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error('Gagal menandai dibaca:', err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllAsRead = async () => {
+    try {
+      await api.patch('/api/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Gagal menandai semua dibaca:', err);
+    }
   };
 
   return (
@@ -179,8 +204,8 @@ const Header = () => {
                     <div className="notif-item-icon">{n.icon}</div>
                     <div className="notif-item-content">
                       <div className="notif-item-title">{n.title}</div>
-                      <div className="notif-item-desc">{n.desc}</div>
-                      <div className="notif-item-time">{n.time}</div>
+                      <div className="notif-item-desc">{n.description || n.desc}</div>
+                      <div className="notif-item-time">{n.time || (n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}</div>
                     </div>
                     {!n.read && <div className="notif-unread-dot"></div>}
                   </div>
@@ -299,9 +324,17 @@ function Matrix() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTasks();
     fetchSessions();
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/api/user/profile');
+        localStorage.setItem('userProfile', JSON.stringify(res.data));
+      } catch (err) {
+        console.error('Gagal load profile:', err);
+      }
+    };
+    fetchProfile();
   }, []);
 
   const handleAddTask = async () => {
